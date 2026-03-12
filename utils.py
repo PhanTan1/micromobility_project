@@ -11,9 +11,9 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_pg_conn():
-    """Returns a connection to the PostgreSQL database."""
     return psycopg2.connect(
-        host=os.getenv("PG_HOST", "localhost"),
+        # 'host.docker.internal' tells Docker to look outside at your Mac/Windows host
+        host=os.getenv("PG_HOST", "host.docker.internal"), 
         port=os.getenv("PG_PORT", "5432"),
         dbname=os.getenv("PG_DATABASE", "stage_micromobility"),
         user=os.getenv("PG_USER", "tan"),
