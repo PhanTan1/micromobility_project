@@ -91,21 +91,38 @@ def setup_tables():
         );
         """,
         
-        # VILLO_ANALYTICS Layer
+        # VILLO_ANALYTICS 
         """
         CREATE TABLE IF NOT EXISTS "VILLO_ANALYTICS"."D_STATION" (
-            station_id varchar(80), station_pk bigint, station_name text, archipel text,
-            gid bigint, name_fr varchar(50), name_nl varchar(50), address_fr varchar(100),
-            address_nl varchar(100), postal_cd integer, commune_fr varchar(30),
-            commune_nl varchar(30), lat double precision, lon double precision, load_ts timestamp
+            station_id varchar(80), 
+            station_pk bigint, 
+            station_name text, 
+            archipel text,
+            gid bigint, 
+            name_fr varchar(200), 
+            name_nl varchar(200), 
+            address_fr varchar(500), 
+            address_nl varchar(500),
+            postal_cd integer, 
+            commune_fr varchar(100),
+            commune_nl varchar(100), 
+            lat double precision, 
+            lon double precision, 
+            load_ts timestamp
         );
         """,
-        'CREATE TABLE IF NOT EXISTS "VILLO_ANALYTICS"."REF_STATION" (station_pk bigint PRIMARY KEY, bonus_flag boolean DEFAULT false, banking_flag boolean DEFAULT false);',
         """
         CREATE TABLE IF NOT EXISTS "VILLO_ANALYTICS"."F_STATION_STATUS" (
-            station_status_pk UUID PRIMARY KEY DEFAULT gen_random_uuid(), station_fk bigint, last_update_ts timestamp,
-            stands_nb bigint, available_stands_nb bigint, available_vehicles_nb bigint,
-            status varchar(6), bonus_flag boolean, banking_flag boolean, load_ts timestamp
+            station_status_pk UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            station_fk bigint, 
+            last_update_ts timestamp,
+            stands_nb bigint, 
+            available_stands_nb bigint, 
+            available_vehicles_nb bigint,
+            status varchar(10), 
+            bonus_flag boolean, 
+            banking_flag boolean, 
+            load_ts timestamp
         );
         """
     ]
