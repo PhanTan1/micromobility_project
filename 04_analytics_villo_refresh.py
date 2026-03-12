@@ -6,22 +6,44 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # --- SQL COMMANDS ---
 
 SQL_UPSERT_D_STATION = """
--- 1. Update existing stations
+-- 1. Update existing stations (coordinates and timestamp)
 UPDATE "VILLO_ANALYTICS"."D_STATION" AS tgt
-SET lat = src.lat, lon = src.lon, load_ts = src.load_ts
+SET 
+    lat = src.lat, 
+    lon = src.lon, 
+    load_ts = src.load_ts
 FROM "VILLO_STAGING"."D_STATION" AS src
 WHERE tgt.station_pk = src.station_id::bigint;
 
--- 2. Insert new stations
+-- 2. Insert new stations that don't exist yet
 INSERT INTO "VILLO_ANALYTICS"."D_STATION" (
-    station_id, station_pk, station_name, name_fr, name_nl, address_fr, address_nl, lat, lon, load_ts
+    station_id, 
+    station_pk, 
+    station_name, 
+    name_fr, 
+    name_nl, 
+    address_fr, 
+    address_nl, 
+    lat, 
+    lon, 
+    load_ts
 )
 SELECT 
-    src.station_id || ' - ' || src.name_en, src.station_id::bigint, src.name_en, 
-    src.name_fr, src.name_nl, src.address, src.address, src.lat, src.lon, src.load_ts
+    src.station_id || ' - ' || src.name_en, 
+    src.station_id::bigint, 
+    src.name_en, 
+    src.name_fr, 
+    src.name_nl, 
+    src.address, 
+    src.address, 
+    src.lat, 
+    src.lon, 
+    src.load_ts
 FROM "VILLO_STAGING"."D_STATION" AS src
 WHERE NOT EXISTS (
-    SELECT 1 FROM "VILLO_ANALYTICS"."D_STATION" AS tgt WHERE tgt.station_pk = src.station_id::bigint
+    SELECT 1 
+    FROM "VILLO_ANALYTICS"."D_STATION" AS tgt 
+    WHERE tgt.station_pk = src.station_id::bigint
 );
 """
 
@@ -60,24 +82,23 @@ LEFT JOIN "VILLO_ANALYTICS"."REF_STATION" ref
 """
 
 def refresh_analytics():
-    """Orchestrates the movement from Staging to Analytics layer."""
+    """Main orchestrator for Gold Layer refresh."""
     logging.info("Starting Analytics Refresh (Gold Layer)...")
     
     try:
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
-                # 1. Update Dimensions (D_STATION)
-                logging.info("Updating Analytics Dimensions...")
+                # Step 1: Update D_STATION (Dimensions)
+                logging.info("Step 1: Upserting D_STATION (Analytics Dimensions)...")
                 cur.execute(SQL_UPSERT_D_STATION)
                 
-                # 2. Move Facts (F_STATION_STATUS)
-                # PostgreSQL automatically generates the UUID for station_status_pk
-                logging.info("Moving data to Analytics Facts...")
+                # Step 2: Update F_STATION_STATUS (Facts)
+                logging.info("Step 2: Inserting F_STATION_STATUS (Analytics Facts)...")
                 cur.execute(SQL_MOVE_TO_FACTS)
                 fact_count = cur.rowcount
                 
-                # 3. Truncate Staging Facts
-                logging.info(f"Clearing Staging for {fact_count} processed rows...")
+                # Step 3: Clean up Staging Facts
+                logging.info(f"Step 3: Truncating Staging Facts ({fact_count} rows processed)...")
                 cur.execute('TRUNCATE TABLE "VILLO_STAGING"."F_STATION_STATUS"')
                 
             conn.commit()
