@@ -103,7 +103,7 @@ def setup_tables():
         'CREATE TABLE IF NOT EXISTS "VILLO_ANALYTICS"."REF_STATION" (station_pk bigint PRIMARY KEY, bonus_flag boolean DEFAULT false, banking_flag boolean DEFAULT false);',
         """
         CREATE TABLE IF NOT EXISTS "VILLO_ANALYTICS"."F_STATION_STATUS" (
-            station_status_pk bigint PRIMARY KEY, station_fk bigint, last_update_ts timestamp,
+            station_status_pk UUID PRIMARY KEY DEFAULT gen_random_uuid(), station_fk bigint, last_update_ts timestamp,
             stands_nb bigint, available_stands_nb bigint, available_vehicles_nb bigint,
             status varchar(6), bonus_flag boolean, banking_flag boolean, load_ts timestamp
         );
