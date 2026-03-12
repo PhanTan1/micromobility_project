@@ -5,11 +5,17 @@ import psycopg2
 import requests
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging for the entire project
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def get_pg_conn():
+    """Returns a connection to the PostgreSQL database."""
     return psycopg2.connect(
         host=os.getenv("PG_HOST", "localhost"),
         port=os.getenv("PG_PORT", "5432"),
@@ -18,18 +24,20 @@ def get_pg_conn():
         password=os.getenv("PG_PASS", "")
     )
 
-def ingest_raw_data(target_table, url):
+def ingest_raw_villo_data(target_table, url):
+    """Fetches JSON from Villo API and inserts it into the RAW schema."""
     try:
-        logging.info(f"Fetching data for {target_table}...")
+        logging.info(f"Requesting data from: {url}")
         r = requests.get(url, timeout=20)
         r.raise_for_status()
         payload = r.json()
 
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
+                # Target table is controlled internally, safe for f-string
                 sql = f'INSERT INTO "VILLO_RAW"."{target_table}" (RAW, SOURCE_URL) VALUES (%s, %s)'
                 cur.execute(sql, (json.dumps(payload), url))
             conn.commit()
-        logging.info(f"Success: {target_table} updated.")
+        logging.info(f"Successfully updated VILLO_RAW.{target_table}")
     except Exception as e:
-        logging.error(f"Error ingesting {target_table}: {e}")
+        logging.error(f"Failed to ingest {target_table}: {e}")
