@@ -304,6 +304,7 @@ services:
       <<: *airflow-common-env
       CONNECTION_CHECK_MAX_COUNT: "0"
     # Workaround for entrypoint issue. See: https://github.com/apache/airflow/issues/16252
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
     command:
       - bash
       - -c

@@ -81,7 +81,7 @@ LEFT JOIN "VILLO_ANALYTICS"."REF_STATION" ref
     ON ref.station_pk = d_ana.station_pk;
 """
 
-def refresh_analytics():
+def run_analytics_refresh():
     """Main orchestrator for Gold Layer refresh."""
     logging.info("Starting Analytics Refresh (Gold Layer)...")
     
@@ -108,4 +108,4 @@ def refresh_analytics():
         logging.error(f"Critical error during Analytics refresh: {e}")
 
 if __name__ == "__main__":
-    refresh_analytics()
+    run_analytics_refresh()

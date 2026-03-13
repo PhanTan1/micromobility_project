@@ -13,7 +13,7 @@ def parse_iso8601(ts_str):
     except:
         return None
 
-def transform_villo_status():
+def run_villo_status_transformation():
     """
     Incremental transformation: Finds all RAW snapshots not yet in STAGING 
     and processes them in order.
@@ -94,4 +94,4 @@ def transform_villo_status():
         logging.error(f"Incremental transformation failed: {e}")
 
 if __name__ == "__main__":
-    transform_villo_status()
+    run_villo_status_transformation()

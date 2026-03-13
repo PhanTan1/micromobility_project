@@ -3,7 +3,7 @@ from utils import get_pg_conn, batch_insert_staging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def transform_station_info():
+def run_station_info_transformation():
     """
     Refreshes the STAGING station information by parsing the latest RAW snapshot.
     Uses a 'Truncate and Load' strategy.
@@ -67,4 +67,4 @@ def transform_station_info():
         logging.error(f"Transformation of station information failed: {e}")
 
 if __name__ == "__main__":
-    transform_station_info()
+    run_station_info_transformation()

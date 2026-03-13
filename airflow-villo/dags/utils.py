@@ -11,13 +11,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_pg_conn():
+    # Inside Docker, host.docker.internal points to your Mac/Windows host
+    # Outside Docker, it defaults to localhost
+    host = os.getenv("PG_HOST", "host.docker.internal")
+    
     return psycopg2.connect(
-        # 'host.docker.internal' tells Docker to look outside at your Mac/Windows host
-        host=os.getenv("PG_HOST", "host.docker.internal"), 
+        host=host,
         port=os.getenv("PG_PORT", "5432"),
         dbname=os.getenv("PG_DATABASE", "stage_micromobility"),
         user=os.getenv("PG_USER", "tan"),
-        password=os.getenv("PG_PASS", "")
+        password=os.getenv("PG_PASS", "your_password")
     )
 
 def ingest_raw_villo_data(target_table, url):

@@ -68,6 +68,8 @@ def setup_tables():
     cur = conn.cursor()
 
     table_commands = [
+        # Extension needed for gen_random_uuid()
+        'CREATE EXTENSION IF NOT EXISTS "pgcrypto";',
         # VILLO_RAW Layer
         'CREATE TABLE IF NOT EXISTS "VILLO_RAW"."D_STATION" (raw jsonb, source_url varchar(300), load_ts timestamp DEFAULT CURRENT_TIMESTAMP);',
         'CREATE TABLE IF NOT EXISTS "VILLO_RAW"."F_STATION_STATUS" (raw jsonb, source_url varchar(300), load_ts timestamp DEFAULT CURRENT_TIMESTAMP);',
