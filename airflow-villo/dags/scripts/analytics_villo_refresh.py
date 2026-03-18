@@ -71,7 +71,7 @@ SELECT
     END                             AS status,
     COALESCE(ref.bonus_flag, FALSE)   AS bonus_flag,
     COALESCE(ref.banking_flag, FALSE) AS banking_flag,
-    CURRENT_TIMESTAMP               AS load_ts
+    s.load_ts               AS load_ts
 FROM "VILLO_STAGING"."F_STATION_STATUS" s
 JOIN "VILLO_STAGING"."D_STATION" d_sta
     ON d_sta.station_id = s.station_id

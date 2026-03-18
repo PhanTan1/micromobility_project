@@ -23,8 +23,7 @@ def run_villo_status_transformation():
     try:
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
-                # 1. Get the 'Watermark' (The latest record we already have in STAGING)
-                cur.execute('SELECT MAX(load_ts) FROM "VILLO_STAGING"."F_STATION_STATUS"')
+                cur.execute('SELECT MAX(load_ts) FROM "VILLO_ANALYTICS"."F_STATION_STATUS"')
                 watermark = cur.fetchone()[0]
                 
                 if watermark is None:

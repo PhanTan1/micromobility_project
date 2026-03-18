@@ -4,6 +4,6 @@ plugins/
 config/
 __pycache__/
 .env
-
+structure.txt
 # Keep the orchestration
 !docker-compose.yaml
