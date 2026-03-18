@@ -45,6 +45,16 @@ WHERE NOT EXISTS (
     FROM "VILLO_ANALYTICS"."D_STATION" AS tgt 
     WHERE tgt.station_pk = src.station_id::bigint
 );
+
+-- 3. Insert new stations into REF_STATION to keep referential integrity
+INSERT INTO "VILLO_ANALYTICS"."REF_STATION" (station_pk, bonus_flag, banking_flag)
+SELECT src.station_id::bigint, FALSE, FALSE
+FROM "VILLO_STAGING"."D_STATION" AS src
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM "VILLO_ANALYTICS"."REF_STATION" AS tgt 
+    WHERE tgt.station_pk = src.station_id::bigint
+);
 """
 
 SQL_MOVE_TO_FACTS = """
@@ -71,7 +81,7 @@ SELECT
     END                             AS status,
     COALESCE(ref.bonus_flag, FALSE)   AS bonus_flag,
     COALESCE(ref.banking_flag, FALSE) AS banking_flag,
-    s.load_ts               AS load_ts
+    s.load_ts                        AS load_ts
 FROM "VILLO_STAGING"."F_STATION_STATUS" s
 JOIN "VILLO_STAGING"."D_STATION" d_sta
     ON d_sta.station_id = s.station_id
@@ -88,8 +98,8 @@ def run_analytics_refresh():
     try:
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
-                # Step 1: Update D_STATION (Dimensions)
-                logging.info("Step 1: Upserting D_STATION (Analytics Dimensions)...")
+                # Step 1: Update D_STATION & REF_STATION (Dimensions)
+                logging.info("Step 1: Upserting D_STATION and REF_STATION...")
                 cur.execute(SQL_UPSERT_D_STATION)
                 
                 # Step 2: Update F_STATION_STATUS (Facts)
@@ -97,9 +107,10 @@ def run_analytics_refresh():
                 cur.execute(SQL_MOVE_TO_FACTS)
                 fact_count = cur.rowcount
                 
-                # Step 3: Clean up Staging Facts
-                logging.info(f"Step 3: Truncating Staging Facts ({fact_count} rows processed)...")
+                # Step 3: Clean up Staging workspace
+                logging.info(f"Step 3: Truncating Staging workspace ({fact_count} rows processed)...")
                 cur.execute('TRUNCATE TABLE "VILLO_STAGING"."F_STATION_STATUS"')
+                cur.execute('TRUNCATE TABLE "VILLO_STAGING"."D_STATION"')
                 
             conn.commit()
             logging.info("Analytics layer successfully refreshed.")
