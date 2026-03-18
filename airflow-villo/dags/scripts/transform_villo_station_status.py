@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime, timezone
 from dateutil import parser
@@ -10,7 +9,7 @@ def parse_iso8601(ts_str):
     if not ts_str: return None
     try:
         return parser.isoparse(ts_str).astimezone(timezone.utc).replace(tzinfo=None)
-    except:
+    except Exception:
         return None
 
 def run_villo_status_transformation():
@@ -21,22 +20,23 @@ def run_villo_status_transformation():
     logging.info("Starting Incremental Transformation: RAW to STAGING")
 
     try:
-        logging.info("Clearing Staging workspace before processing...")
+        logging.info("Step 1: Clearing Staging workspace before processing...")
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute('TRUNCATE TABLE "VILLO_STAGING"."F_STATION_STATUS"')
                 
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
+                # Get the watermark from the Gold/Analytics layer
                 cur.execute('SELECT MAX(load_ts) FROM "VILLO_ANALYTICS"."F_STATION_STATUS"')
                 watermark = cur.fetchone()[0]
                 
                 if watermark is None:
-                    logging.info("Staging is empty. Fetching all available history from RAW.")
+                    logging.info("Analytics is empty. Fetching all available history from RAW.")
                     query_raw = 'SELECT raw, load_ts FROM "VILLO_RAW"."F_STATION_STATUS" ORDER BY load_ts ASC'
                     cur.execute(query_raw)
                 else:
-                    logging.info(f"Last processed record in STAGING: {watermark}. Fetching new data...")
+                    logging.info(f"Last processed record in Analytics: {watermark}. Fetching new data...")
                     query_raw = 'SELECT raw, load_ts FROM "VILLO_RAW"."F_STATION_STATUS" WHERE load_ts > %s ORDER BY load_ts ASC'
                     cur.execute(query_raw, (watermark,))
                 
@@ -46,9 +46,9 @@ def run_villo_status_transformation():
             logging.info("No new records found in RAW. Staging is already up to date.")
             return
 
-        logging.info(f"Found {len(raw_snapshots)} new raw snapshots to process.")
+        logging.info(f"Step 2: Found {len(raw_snapshots)} new raw snapshots to process.")
 
-        # 2. Process each snapshot
+        # Process each snapshot
         total_rows_processed = 0
         for payload, raw_load_ts in raw_snapshots:
             
@@ -61,6 +61,7 @@ def run_villo_status_transformation():
             rows_to_insert = []
 
             for s in stations:
+                # Extract specific vehicle counts
                 v_types = s.get("vehicle_types_available", [])
                 mech = sum(v.get("count", 0) for v in v_types if v.get("vehicle_type_id") == "mechanical")
                 elec = sum(v.get("count", 0) for v in v_types if v.get("vehicle_type_id") == "electrical")
@@ -73,7 +74,7 @@ def run_villo_status_transformation():
                     s.get("num_docks_available"),
                     s.get("num_vehicles_disabled"),
                     s.get("num_docks_disabled"),
-                    json.dumps(v_types),
+                    # The full JSON has been successfully removed from here
                     mech,
                     elec,
                     s.get("is_installed"),
@@ -82,11 +83,11 @@ def run_villo_status_transformation():
                     raw_load_ts
                 ))
 
-            # 3. Batch insert this snapshot
+            # Batch insert this snapshot
             cols = [
                 "station_id", "last_updated", "last_reported", "num_vehicles_available",
                 "num_docks_available", "num_vehicles_disabled", "num_docks_disabled",
-                "vehicle_types_available", "mechanical_count", "electrical_count",
+                "mechanical_count", "electrical_count", # Replaced the JSON column with just the counts
                 "is_installed", "is_renting", "is_returning", "load_ts"
             ]
             batch_insert_staging("F_STATION_STATUS", cols, rows_to_insert)
