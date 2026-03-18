@@ -21,6 +21,11 @@ def run_villo_status_transformation():
     logging.info("Starting Incremental Transformation: RAW to STAGING")
 
     try:
+        logging.info("Clearing Staging workspace before processing...")
+        with get_pg_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute('TRUNCATE TABLE "VILLO_STAGING"."F_STATION_STATUS"')
+                
         with get_pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute('SELECT MAX(load_ts) FROM "VILLO_ANALYTICS"."F_STATION_STATUS"')
