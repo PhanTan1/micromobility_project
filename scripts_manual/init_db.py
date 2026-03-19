@@ -75,7 +75,7 @@ def setup_tables():
         'CREATE TABLE IF NOT EXISTS "VILLO_RAW"."D_STATION" (raw jsonb, source_url varchar(300), load_ts timestamp DEFAULT CURRENT_TIMESTAMP);',
         'CREATE TABLE IF NOT EXISTS "VILLO_RAW"."F_STATION_STATUS" (raw jsonb, source_url varchar(300), load_ts timestamp DEFAULT CURRENT_TIMESTAMP);',
         
-        # Snowflake Backup table (Matches the exact structure provided)
+        # Snowflake Backup table
         """
         CREATE TABLE IF NOT EXISTS "VILLO_RAW"."SNOWFLAKE_BACKUP" (
             "STATION_STATUS_PK" int8 NULL,
@@ -117,7 +117,6 @@ def setup_tables():
             num_docks_available integer,
             num_vehicles_disabled integer, 
             num_docks_disabled integer,
-            vehicle_types_available jsonb, 
             mechanical_count integer,
             electrical_count integer, 
             is_installed boolean, 
