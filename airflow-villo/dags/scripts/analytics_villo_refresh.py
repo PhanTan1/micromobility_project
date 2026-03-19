@@ -6,30 +6,63 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # --- SQL COMMANDS ---
 
 SQL_UPSERT_D_STATION = """
--- 1. Update existing stations
+-- 1. Update existing stations (coordinates and timestamp)
 UPDATE "VILLO_ANALYTICS"."D_STATION" AS tgt
-SET lat = src.lat, lon = src.lon, load_ts = src.load_ts
+SET 
+    lat = src.lat, 
+    lon = src.lon, 
+    load_ts = src.load_ts
 FROM "VILLO_STAGING"."D_STATION" AS src
 WHERE tgt.station_pk = src.station_id::bigint;
 
--- 2. Insert new stations
+-- 2. Insert new stations with deduplication and quality filter
 INSERT INTO "VILLO_ANALYTICS"."D_STATION" (
-    station_id, station_pk, station_name, name_fr, name_nl, address_fr, address_nl, lat, lon, load_ts
+    station_id, 
+    station_pk, 
+    station_name, 
+    name_fr, 
+    name_nl, 
+    address_fr, 
+    address_nl, 
+    lat, 
+    lon, 
+    load_ts
 )
-SELECT 
-    src.station_id || ' - ' || src.name_en, src.station_id::bigint, src.name_en, src.name_fr, src.name_nl, src.address, src.address, src.lat, src.lon, src.load_ts
+SELECT DISTINCT ON (src.station_id::bigint) -- Empêche les doublons dans le même batch
+    src.station_id || ' - ' || src.name_en, 
+    src.station_id::bigint, 
+    src.name_en, 
+    src.name_fr, 
+    src.name_nl, 
+    src.address, 
+    src.address, 
+    src.lat, 
+    src.lon, 
+    src.load_ts
 FROM "VILLO_STAGING"."D_STATION" AS src
-WHERE NOT EXISTS (
-    SELECT 1 FROM "VILLO_ANALYTICS"."D_STATION" AS tgt WHERE tgt.station_pk = src.station_id::bigint
-);
+WHERE 
+    -- FILTRE DE QUALITÉ : On ignore les stations sans nom ou sans adresse
+    src.name_en != '' 
+    AND src.address != ''
+    -- FILTRE ANTI-DOUBLONS Gold
+    AND NOT EXISTS (
+        SELECT 1 
+        FROM "VILLO_ANALYTICS"."D_STATION" AS tgt 
+        WHERE tgt.station_pk = src.station_id::bigint
+    )
+ORDER BY src.station_id::bigint, src.load_ts DESC; -- On prend la version la plus récente si doublon
 
 -- 3. Insert new stations into REF_STATION
 INSERT INTO "VILLO_ANALYTICS"."REF_STATION" (station_pk, bonus_flag, banking_flag)
 SELECT DISTINCT src.station_id::bigint, FALSE, FALSE
 FROM "VILLO_STAGING"."D_STATION" AS src
-WHERE NOT EXISTS (
-    SELECT 1 FROM "VILLO_ANALYTICS"."REF_STATION" AS tgt WHERE tgt.station_pk = src.station_id::bigint
-);
+WHERE 
+    src.name_en != '' -- Même filtre de qualité ici
+    AND NOT EXISTS (
+        SELECT 1 
+        FROM "VILLO_ANALYTICS"."REF_STATION" AS tgt 
+        WHERE tgt.station_pk = src.station_id::bigint
+    );
 """
 
 SQL_MOVE_TO_FACTS = """
