@@ -2,11 +2,7 @@ from airflow import DAG
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'scripts')))
-from analytics_villo_refresh import refresh_facts
+from scripts.analytics_villo_refresh import refresh_facts
 
 with DAG(
     dag_id='villo_facts_10min',

@@ -1,11 +1,12 @@
-import os
 import sys
 import logging
 from dotenv import load_dotenv
-from utils import get_pg_conn
-# -----------------------------------------------
-load_dotenv()
+from pathlib import Path
 
+racine_projet = Path(__file__).parent.parent
+sys.path.append(str(racine_projet))
+
+from dags.common.utils import get_pg_conn
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

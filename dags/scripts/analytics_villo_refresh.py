@@ -1,5 +1,5 @@
 import logging
-from utils import get_pg_conn
+from common.utils import get_pg_conn
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

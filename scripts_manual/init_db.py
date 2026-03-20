@@ -1,7 +1,14 @@
 import os
+import sys
 import psycopg2
 from psycopg2 import errors
 from dotenv import load_dotenv
+from pathlib import Path
+
+racine_projet = Path(__file__).parent.parent
+sys.path.append(str(racine_projet))
+
+from dags.common.utils import get_pg_conn
 
 # Load environment variables from .env file
 load_dotenv()

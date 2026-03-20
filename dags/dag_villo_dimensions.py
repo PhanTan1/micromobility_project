@@ -2,12 +2,8 @@ from airflow import DAG
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime
-import os
-import sys
-
-# Add scripts folder to path for PythonOperator imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'scripts')))
-from analytics_villo_refresh import refresh_dimensions
+from scripts.analytics_villo_refresh import refresh_dimensions
+from common.utils import get_pg_conn
 
 with DAG(
     dag_id='villo_dimension_daily',

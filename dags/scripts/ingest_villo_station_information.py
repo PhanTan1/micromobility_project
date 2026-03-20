@@ -1,4 +1,4 @@
-from utils import ingest_raw_villo_data, logging
+from common.utils import ingest_raw_villo_data, logging
 
 # Villo GBFS v3 Information URL
 URL_INFO = "https://api.cyclocity.fr/contracts/bruxelles/gbfs/v3/station_information.json"
