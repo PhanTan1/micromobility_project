@@ -2,11 +2,6 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
-
-# --- ADD THIS BLOCK BEFORE FROM UTILS IMPORT ---
-# This adds the parent directory (dags/) to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from utils import get_pg_conn
 # -----------------------------------------------
 load_dotenv()
@@ -15,20 +10,19 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def run_history_migration():
-    logging.info("Starting historical data migration (61M rows)...")
+    logging.info("Starting historical data migration with UTC conversion...")
     
     conn = get_pg_conn()
     conn.autocommit = True 
     cur = conn.cursor()
 
     try:
-        # 1. Performance Tuning (Allowed at session level)
+        # 1. Performance Tuning
         logging.info("Tuning database session for heavy load...")
         cur.execute("SET maintenance_work_mem = '4GB';")
         cur.execute("SET synchronous_commit = off;")
-        # checkpoint_timeout removed because it requires superuser/config file access
 
-        # 2. Quarantine: Move rows with empty timestamps to BACKUP_ERRORS
+        # 2. Quarantine: Move rows with empty timestamps
         logging.info("Step 1: Quarantining rows with empty timestamps...")
         quarantine_sql = """
             INSERT INTO "VILLO_RAW"."BACKUP_ERRORS"
@@ -41,8 +35,20 @@ def run_history_migration():
         cur.execute(quarantine_sql)
         logging.info("Quarantine and cleanup complete.")
 
-        # 3. Bulk Move: Transfer clean data to Analytics
-        logging.info("Step 2: Performing bulk move to VILLO_ANALYTICS (61M rows)...")
+        # 3. La "Coupe Franche" : Supprimer le chevauchement avec Airflow
+        logging.info("Step 2: Cleaning overlap to prevent duplicates with Live Airflow data...")
+        clean_overlap_sql = """
+            DELETE FROM "VILLO_ANALYTICS"."F_STATION_STATUS"
+            WHERE last_update_ts <= (
+                SELECT MAX("LAST_UPDATE_TS"::timestamp AT TIME ZONE 'Europe/Brussels' AT TIME ZONE 'UTC')
+                FROM "VILLO_RAW"."SNOWFLAKE_BACKUP"
+            );
+        """
+        cur.execute(clean_overlap_sql)
+        logging.info("Overlap cleaned successfully.")
+
+        # 4. Bulk Move avec CONVERSION UTC
+        logging.info("Step 3: Performing bulk move and UTC conversion to VILLO_ANALYTICS...")
         move_sql = """
             INSERT INTO "VILLO_ANALYTICS"."F_STATION_STATUS" (
                 station_fk, 
@@ -57,28 +63,30 @@ def run_history_migration():
             )
             SELECT 
                 "STATION_FK",
-                "LAST_UPDATE_TS"::timestamp,
+                -- CONVERSION MAGIQUE : Heure Locale (Bruxelles) -> UTC (GMT 0)
+                ("LAST_UPDATE_TS"::timestamp AT TIME ZONE 'Europe/Brussels') AT TIME ZONE 'UTC',
                 "STANDS_NB",
                 "AVAILABLE_STANDS_NB",
                 "AVAILABLE_VEHICLES_NB",
                 "STATUS",
                 "BONUS_FLAG",
                 "BANKING_FLAG",
-                "LOAD_TS"::timestamp
-FROM "VILLO_RAW"."SNOWFLAKE_BACKUP";
+                -- On convertit aussi le Load_ts pour rester propre
+                ("LOAD_TS"::timestamp AT TIME ZONE 'Europe/Brussels') AT TIME ZONE 'UTC'
+            FROM "VILLO_RAW"."SNOWFLAKE_BACKUP";
         """
         cur.execute(move_sql)
-        logging.info(f"Successfully migrated {cur.rowcount} rows to Analytics.")
+        logging.info(f"Successfully migrated and converted {cur.rowcount} rows to Analytics.")
 
-        # 4. Indexing: Create indexes AFTER data load
-        logging.info("Step 3: Creating indexes (this will take a few minutes)...")
+        # 5. Indexing
+        logging.info("Step 4: Creating indexes (this will take a few minutes)...")
         cur.execute('CREATE INDEX IF NOT EXISTS idx_f_status_station_fk ON "VILLO_ANALYTICS"."F_STATION_STATUS" (station_fk);')
         cur.execute('CREATE INDEX IF NOT EXISTS idx_f_status_date ON "VILLO_ANALYTICS"."F_STATION_STATUS" (last_update_ts);')
         
-        logging.info("Step 4: Updating statistics (ANALYZE)...")
+        logging.info("Step 5: Updating statistics (ANALYZE)...")
         cur.execute('ANALYZE "VILLO_ANALYTICS"."F_STATION_STATUS";')
 
-        logging.info("Migration successfully completed!")
+        logging.info("Migration successfully completed! Data is now in pure UTC.")
 
     except Exception as e:
         logging.error(f"Migration failed: {e}")
