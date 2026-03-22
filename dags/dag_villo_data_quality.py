@@ -73,7 +73,7 @@ with DAG(
     'villo_data_quality_audit',
     default_args=default_args,
     description='Audit quotidien de la qualité des données Villo',
-    schedule='@daily', 
+    schedule='*/15 * * * *', 
     catchup=False
 ) as dag:
 

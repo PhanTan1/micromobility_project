@@ -2,16 +2,15 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
+from pathlib import Path
 
-# --- PATH FIX ---
-# This looks for the 'airflow-villo/dags' folder relative to this script
-current_dir = os.path.dirname(os.path.abspath(__file__))
-dags_path = os.path.abspath(os.path.join(current_dir, '..', 'airflow-villo', 'dags'))
+racine_projet = Path(__file__).parent.parent
+sys.path.append(str(racine_projet))
 
-if dags_path not in sys.path:
-    sys.path.insert(0, dags_path)
-# ----------------
-from utils import get_pg_conn
+from dags.common.utils import get_pg_conn
+
+# Load environment variables from .env file
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(INFO)s - %(message)s')
 
