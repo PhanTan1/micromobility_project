@@ -50,7 +50,7 @@ def run_sanity_checks():
                     print(f"[FAIL] Integrity: Found {orphans} status records without a matching station!")
 
                 # 3. Snapshot Consistency
-                # Check if a single raw snapshot (average ~200 stations) matches the expected volume
+                # Check if a single raw snapshot (average ~347 stations) matches the expected volume
                 consistency_query = """
                 SELECT load_ts, COUNT(*) 
                 FROM "VILLO_ANALYTICS"."F_STATION_STATUS" 
@@ -58,7 +58,7 @@ def run_sanity_checks():
                 ORDER BY load_ts DESC LIMIT 5
                 """
                 cur.execute(consistency_query)
-                print("\n[INFO] Recent Load Consistency (Expect ~200-215 per snapshot):")
+                print("\n[INFO] Recent Load Consistency (Expect ~347 per snapshot):")
                 for row in cur.fetchall():
                     print(f"       {row[0]} -> {row[1]} rows")
 
