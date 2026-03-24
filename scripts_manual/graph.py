@@ -131,7 +131,15 @@ def generate_report(df_prod, df_poc, df_dst_prod, df_dst_poc, orphans_count):
     df_dst_poc = df_dst_poc.rename(columns={"hour_local": "HOUR_LOCAL", "cnt": "CNT"}) # Harmonisation
     df_dst_combined = pd.concat([df_dst_prod, df_dst_poc])
     
-    sns.barplot(data=df_dst_combined, x="HOUR_LOCAL", y="CNT", hue="Pipeline", palette=["#e74c3c", "#2ecc71"], ax=ax2)
+    sns.barplot(
+    data=df_dst_combined, 
+    x="HOUR_LOCAL", 
+    y="CNT", 
+    hue="Pipeline", 
+    hue_order=['Prod (Snowflake)', 'PoC (Postgres UTC)'], # FORCE L'ORDRE ICI
+    palette=["#e74c3c", "#2ecc71"], 
+    ax=ax2
+    )
     ax2.set_title(f"2. Gestion du Changement d'Heure d'Hiver ({DATE_DST})", fontsize=14, fontweight='bold')
     ax2.set_ylabel("Volume de données (lignes)")
 
@@ -143,7 +151,15 @@ def generate_report(df_prod, df_poc, df_dst_prod, df_dst_poc, orphans_count):
         "PoC (Postgres)": [orphans_count]
     }).melt(id_vars="Métrique", var_name="Pipeline", value_name="Compte")
     
-    sns.barplot(data=df_quality, x="Métrique", y="Compte", hue="Pipeline", palette=["#e74c3c", "#2ecc71"], ax=ax3)
+    sns.barplot(
+    data=df_quality, 
+    x="Métrique", 
+    y="Compte", 
+    hue="Pipeline", 
+    hue_order=['Prod (Simulé/Historique)', 'PoC (Postgres)'], # FORCE L'ORDRE ICI
+    palette=["#e74c3c", "#2ecc71"], 
+    ax=ax3
+    )
     ax3.set_title("3. Qualité des Données (Orphelins)", fontsize=14, fontweight='bold')
 
     fig.savefig(OUTPUT_PNG, bbox_inches="tight")
