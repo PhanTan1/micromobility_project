@@ -5,5 +5,7 @@ config/
 __pycache__/
 .env
 structure.txt
+audit_comparatif_pipeline.png
+documentation_villo.md
 # Keep the orchestration
 !docker-compose.yaml
